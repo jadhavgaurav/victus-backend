@@ -1,0 +1,53 @@
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: victus
+      POSTGRES_USER: victus
+      POSTGRES_PASSWORD: victus_dev_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - victus_pgdata:/var/lib/postgresql/data
+      - ./backend/db/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U victus -d victus"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app
+      - ./chat_history.db:/app/chat_history.db
+      - ./uploads:/app/uploads
+      - ./faiss_index:/app/faiss_index
+      - ./models:/app/models
+    environment:
+      - HOST=0.0.0.0
+      - DATABASE_URL=postgresql+psycopg2://victus:victus_dev_password@db:5432/victus
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ../frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: http://localhost:8000
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  victus_pgdata:

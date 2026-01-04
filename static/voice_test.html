@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>VICTUS Voice Test</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            padding: 20px;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        #log {
+            margin-top: 20px;
+            white-space: pre-wrap;
+            background: #f0f0f0;
+            padding: 10px;
+            border-radius: 5px;
+        }
+
+        .status {
+            margin: 10px 0;
+            font-weight: bold;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Voice Interface Test</h1>
+
+    <div>
+        <button id="recBtn" class="btn">Hold to Speak</button>
+    </div>
+
+    <div class="status" id="status">Ready</div>
+
+    <h3>Transcript:</h3>
+    <div id="transcript">...</div>
+
+    <h3>Response:</h3>
+    <div id="response">...</div>
+
+    <h3>Debug Log:</h3>
+    <div id="log"></div>
+
+    <script>
+        let mediaRecorder;
+        let audioChunks = [];
+
+        const recBtn = document.getElementById('recBtn');
+        const statusEl = document.getElementById('status');
+        const logEl = document.getElementById('log');
+
+        function log(msg) {
+            logEl.textContent += msg + '\n';
+            console.log(msg);
+        }
+
+        navigator.mediaDevices.getUserMedia({ audio: true })
+            .then(stream => {
+                mediaRecorder = new MediaRecorder(stream);
+
+                mediaRecorder.ondataavailable = event => {
+                    audioChunks.push(event.data);
+                };
+
+                mediaRecorder.onstop = uploadAudio;
+
+                recBtn.addEventListener('mousedown', () => {
+                    audioChunks = [];
+                    mediaRecorder.start();
+                    statusEl.textContent = "Recording...";
+                    recBtn.style.background = "red";
+                    recBtn.style.color = "white";
+                });
+
+                recBtn.addEventListener('mouseup', () => {
+                    mediaRecorder.stop();
+                    statusEl.textContent = "Processing...";
+                    recBtn.style.background = "";
+                    recBtn.style.color = "";
+                });
+
+            }).catch(e => log("Error getting microphone: " + e));
+
+        async function uploadAudio() {
+            const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+            const formData = new FormData();
+            formData.append("file", audioBlob, "recording.wav");
+
+            log("Sending audio...");
+
+            try {
+                // Must be authenticated or disabled auth for this test. 
+                // Since this is static file served by backend, we might need a token.
+                // For quick test, we assume user is already logged in via session cookie 
+                // OR we accept 401 and tell user to login first.
+
+                const res = await fetch('/api/voice/chat', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!res.ok) {
+                    throw new Error(`HTTP ${res.status}: ${await res.text()}`);
+                }
+
+                const data = await res.json();
+                log("Received response.");
+
+                document.getElementById('transcript').textContent = data.user_transcript;
+                document.getElementById('response').textContent = data.assistant_text;
+
+                if (data.audio_base64) {
+                    log("Playing audio response...");
+                    const audio = new Audio("data:audio/mpeg;base64," + data.audio_base64);
+                    audio.play();
+                } else {
+                    log("No audio response.");
+                }
+
+                statusEl.textContent = "Ready";
+
+            } catch (e) {
+                log("Error: " + e.message);
+                statusEl.textContent = "Error";
+            }
+        }
+    </script>
+</body>
+
+</html>
