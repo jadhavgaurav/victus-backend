@@ -13,7 +13,7 @@ from ..utils.logging import get_logger
 
 logger = get_logger(__name__)
 
-router = APIRouter(prefix="/api/conversations", tags=["Conversations"])
+router = APIRouter(prefix="/conversations", tags=["Conversations"])
 
 # Pydantic Models
 class ConversationCreate(BaseModel):

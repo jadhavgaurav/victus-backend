@@ -3,10 +3,8 @@ from typing import Dict, Any
 from sqlalchemy.orm import Session
 from sqlalchemy import desc
 
-from ..models.message import Message
-
-# Optional: Import memory store if available and reliable
-# from ..memory.store import MemoryStore 
+from ..models.tool_execution import AgentMessage
+from ..memory.retrieve import retrieve_memories
 
 def get_context(
     db: Session,
@@ -18,15 +16,14 @@ def get_context(
     """
     Retrieves the context for the agent:
     1. Recent conversation history (last N messages).
-    2. (TODO) Semantic memory / RAG context based on utterance.
+    2. Semantic memory / RAG context based on utterance.
     """
     
     # 1. Fetch recent messages
-    # We want them in chronological order, so we fetch desc then reverse
-    recent_msgs = db.query(Message).filter(
-        Message.session_id == session_id,
-        Message.user_id == user_id
-    ).order_by(desc(Message.created_at)).limit(limit_messages).all()
+    recent_msgs = db.query(AgentMessage).filter(
+        AgentMessage.session_id == session_id,
+        AgentMessage.user_id == user_id
+    ).order_by(desc(AgentMessage.created_at)).limit(limit_messages).all()
     
     history = []
     for m in reversed(recent_msgs):
@@ -36,10 +33,21 @@ def get_context(
             "modality": m.modality
         })
         
-    # 2. (Future) Memory Retrieval
-    # relevant_facts = memory_store.search(utterance)
+    # 2. Memory Retrieval (A2.6)
+    memories = retrieve_memories(
+        db=db, 
+        user_id=str(user_id), 
+        query_text=utterance,
+        types=["FACT", "PREFERENCE", "TASK", "SUMMARY", "NOTE"],
+        top_k=5, 
+        min_score=0.65
+    )
+    
+    memory_facts = []
+    for m in memories:
+        memory_facts.append(f"[{m.type}] {m.content}")
     
     return {
         "history": history,
-        "memory_facts": [] # Placeholder
+        "memory_facts": memory_facts
     }

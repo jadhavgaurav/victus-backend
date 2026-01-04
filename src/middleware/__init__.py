@@ -2,10 +2,10 @@ import uuid
 from fastapi import Request
 from starlette.middleware.base import BaseHTTPMiddleware
 from sqlalchemy.orm import Session
-from .database import SessionLocal
-from .models.trace import Trace
-from .utils.context import set_trace_id, get_user_id
-from .utils.logging import get_logger
+from ..database import SessionLocal
+from ..models.trace import Trace
+from ..utils.context import set_trace_id, get_user_id
+from ..utils.logging import get_logger
 
 logger = get_logger(__name__)
 

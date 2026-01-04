@@ -18,7 +18,7 @@ from .schemas import (
 )
 
 logger = get_logger(__name__)
-router = APIRouter(prefix="/api", tags=["Facts"])
+router = APIRouter(prefix="", tags=["Facts"])
 
 
 def get_user_identifier(current_user: Optional[User]) -> str:

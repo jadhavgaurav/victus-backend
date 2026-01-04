@@ -1,6 +1,7 @@
 
 import os
 # Set env vars BEFORE importing app
+os.environ["ENVIRONMENT"] = "test"
 os.environ["OPENAI_API_KEY"] = "sk-test-key"
 os.environ["SMTP_USER"] = "test"
 os.environ["SMTP_PASS"] = "test"
@@ -31,17 +32,36 @@ def mock_user():
     user.is_active = True
     return user
 
-@pytest.fixture
-def mock_db_session():
-    return MagicMock()
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+from src.database import Base, get_db
+
+# Use in-memory SQLite for tests
+TEST_DATABASE_URL = "sqlite:///:memory:"
+
+@pytest.fixture(scope="session")
+def engine():
+    engine = create_engine(TEST_DATABASE_URL, connect_args={"check_same_thread": False})
+    Base.metadata.create_all(bind=engine)
+    yield engine
+    Base.metadata.drop_all(bind=engine)
 
 @pytest.fixture
-def token_headers(mock_user, mock_db_session):
-    # Override dependencies for authenticated requests
-    app.dependency_overrides[get_current_user] = lambda: mock_user
-    app.dependency_overrides[get_db] = lambda: mock_db_session
-    yield {"Authorization": "Bearer test", "X-CSRF-Token": "test-token"}
-    app.dependency_overrides.clear()
+def db_session(engine):
+    connection = engine.connect()
+    transaction = connection.begin()
+    SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=connection)
+    session = SessionLocal()
+
+    # Override the dependency
+    app.dependency_overrides[get_db] = lambda: session
+    
+    yield session
+    
+    session.close()
+    transaction.rollback()
+    connection.close()
+    app.dependency_overrides.clear() # Clear overrides after test
 
 @pytest.fixture
 def csrf_headers():

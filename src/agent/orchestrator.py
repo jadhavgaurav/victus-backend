@@ -23,7 +23,8 @@ class AgentOrchestrator:
         user_id: UUID,
         session_id: UUID,
         utterance: str,
-        modality: str = "voice"
+        modality: str = "voice",
+        idempotency_key: str = None
     ) -> OrchestratorResponse:
         """
         Main entry point for handling a user command.
@@ -41,7 +42,7 @@ class AgentOrchestrator:
         )
         
         # 1. Persist User Message
-        save_user_message(db, user_id, session_id, utterance, modality)
+        save_user_message(db, user_id, session_id, utterance, modality, trace_id=trace.id, idempotency_key=idempotency_key)
         
         # 2. Check for Pending Confirmation Logic
         pending_conf = db.query(PendingConfirmationModel).filter(
@@ -73,7 +74,7 @@ class AgentOrchestrator:
                 )
                 
                 response_text = self._summarize_result(result)
-                save_assistant_message(db, user_id, session_id, response_text, modality)
+                save_assistant_message(db, user_id, session_id, response_text, modality, trace_id=trace.id)
                 
                 trace.update(output=response_text)
                 return OrchestratorResponse(
@@ -84,23 +85,28 @@ class AgentOrchestrator:
                 
             elif resolution["status"] == "still_pending":
                  msg = resolution["message"]
-                 save_assistant_message(db, user_id, session_id, msg, modality)
+                 save_assistant_message(db, user_id, session_id, msg, modality, trace_id=trace.id)
                  trace.update(output=msg)
                  return OrchestratorResponse(assistant_text=msg, should_speak=True)
                  
             else:
                 msg = f"Confirmation failed: {resolution.get('message')}"
-                save_assistant_message(db, user_id, session_id, msg, modality)
+                save_assistant_message(db, user_id, session_id, msg, modality, trace_id=trace.id)
                 trace.update(output=msg)
                 return OrchestratorResponse(assistant_text=msg, should_speak=True)
 
-        # 3. Intent Parsing
-        intent = parse_intent(utterance)
-        langfuse_client.observe(trace, "intent.parsed", output=intent.model_dump())
-        
-        # 4. Context Retrieval
+        # 3. Context Retrieval (A2.6)
         context = get_context(db, user_id, session_id, utterance)
         langfuse_client.observe(trace, "context.retrieved", output={"context_len": len(context)})
+
+        # Serialize Context
+        history_txt = "\n".join([f"{m['role']}: {m['content']}" for m in context.get("history", [])[-3:]])
+        memories_txt = "\n".join(context.get("memory_facts", []))
+        context_str = f"Conversation History:\n{history_txt}\n\nRelevant Memories:\n{memories_txt}"
+
+        # 4. Intent Parsing
+        intent = parse_intent(utterance, context_str=context_str)
+        langfuse_client.observe(trace, "intent.parsed", output=intent.model_dump())
         
         # 5. Planning
         plan = build_plan(intent, context)
@@ -108,7 +114,7 @@ class AgentOrchestrator:
         
         if plan.requires_user_input:
             msg = plan.clarifying_question or "Could you clarify that?"
-            save_assistant_message(db, user_id, session_id, msg, modality)
+            save_assistant_message(db, user_id, session_id, msg, modality, trace_id=trace.id)
             trace.update(output=msg)
             return OrchestratorResponse(assistant_text=msg, should_speak=True)
             
@@ -137,18 +143,27 @@ class AgentOrchestrator:
         
         if not final_result:
              msg = "I didn't do anything."
-             save_assistant_message(db, user_id, session_id, msg, modality)
+             save_assistant_message(db, user_id, session_id, msg, modality, trace_id=trace.id)
              trace.update(output=msg)
              return OrchestratorResponse(assistant_text=msg)
              
         response_text = self._summarize_result(final_result)
-        save_assistant_message(db, user_id, session_id, response_text, modality)
+        save_assistant_message(db, user_id, session_id, response_text, modality, trace_id=trace.id)
         
         trace.update(output=response_text)
+        # Helper to extract confirmation info
+        pending_conf_data = None
+        if final_result.status == "needs_confirmation":
+             pending_conf_data = {
+                 "id": str(final_result.pending_confirmation_id) if final_result.pending_confirmation_id else None,
+                 "prompt": final_result.confirmation_prompt
+             }
+
         return OrchestratorResponse(
             assistant_text=response_text,
             should_speak=True,
-            metadata={"tool_result": final_result.model_dump()}
+            metadata={"tool_result": final_result.model_dump()},
+            pending_confirmation=pending_conf_data
         )
 
     def _summarize_result(self, result) -> str:

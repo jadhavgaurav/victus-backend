@@ -17,7 +17,7 @@ from ..utils.context import set_session_id
 from .schemas import CalendarEventsResponse, CalendarEventItem
 
 logger = get_logger(__name__)
-router = APIRouter(prefix="/api", tags=["Calendar"])
+router = APIRouter(prefix="", tags=["Calendar"])
 
 BASE_URL = "https://graph.microsoft.com/v1.0"
 

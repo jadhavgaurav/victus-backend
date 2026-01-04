@@ -34,3 +34,4 @@ class OrchestratorResponse(BaseModel):
     assistant_text: str
     should_speak: bool = False
     metadata: Dict[str, Any] = Field(default_factory=dict)
+    pending_confirmation: Optional[Dict[str, Any]] = None

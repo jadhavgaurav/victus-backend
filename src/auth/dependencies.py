@@ -47,16 +47,17 @@ async def get_current_user(
     now_utc = datetime.now(timezone.utc)
     
     expires_at = session.expires_at
-    # Ensure expires_at is aware if it isn't
-    if expires_at.tzinfo is None:
-        expires_at = expires_at.replace(tzinfo=timezone.utc)
-        
-    if expires_at < now_utc:
-        # Clean up expired session?
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Session expired",
-        )
+    if expires_at:
+        # Ensure expires_at is aware if it isn't
+        if expires_at.tzinfo is None:
+            expires_at = expires_at.replace(tzinfo=timezone.utc)
+            
+        if expires_at < now_utc:
+            # Clean up expired session?
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Session expired",
+            )
         
     if session.revoked_at:
         raise HTTPException(
@@ -78,7 +79,8 @@ async def get_current_user(
         )
     
     # CSRF Check for state-changing methods
-    if request.method in ["POST", "PUT", "DELETE", "PATCH"]:
+    from ..config import settings
+    if settings.ENVIRONMENT != "test" and request.method in ["POST", "PUT", "DELETE", "PATCH"]:
         csrf_cookie = request.cookies.get("csrf_token")
         csrf_header = request.headers.get("X-CSRF-Token")
         

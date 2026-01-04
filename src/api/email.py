@@ -16,7 +16,7 @@ from ..utils.context import set_session_id
 from .schemas import EmailsResponse, EmailItem, UnreadCountResponse, M365StatusResponse
 
 logger = get_logger(__name__)
-router = APIRouter(prefix="/api", tags=["Email"])
+router = APIRouter(prefix="", tags=["Email"])
 
 BASE_URL = "https://graph.microsoft.com/v1.0"
 

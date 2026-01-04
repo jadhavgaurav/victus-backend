@@ -4,8 +4,11 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import PydanticOutputParser
 
 from ..config import settings
+from ..utils.logging import get_logger
 from .contracts import Intent
 from .intents_catalog import INTENTS
+
+logger = get_logger(__name__)
 
 # Initializing LLM for Intent Parsing
 # Using a slightly lower temperature for deterministic output
@@ -33,8 +36,16 @@ RULES:
 4. If critical slots are missing for the chosen intent, mark 'needs_clarification' as True and provide a single 'clarifying_question'.
    - Required slots for {intent_example}: Use catalog definitions.
    
-OUTPUT FORMAT:
-Return strictly a JSON object matching the Intent schema.
+    "CONTEXT (Use this to resolve references and parameters):\n{context}\n\n"
+    "OUTPUT FORMAT:\n"
+    "Return strictly a valid JSON object matching the schema:\n"
+    "{{ \n"
+    "  \"name\": \"intent_name_here\", \n"
+    "  \"slots\": {{ ... }}, \n"
+    "  \"confidence\": 0.9, \n"
+    "  \"needs_clarification\": false, \n"
+    "  \"clarifying_question\": null \n"
+    "}}\n"
 """
 
 def _build_intent_list() -> str:
@@ -51,24 +62,20 @@ intent_prompt = ChatPromptTemplate.from_messages([
 
 chain = intent_prompt | llm | parser
 
-def parse_intent(utterance: str, context_str: Optional[str] = None) -> Intent:
+def parse_intent(utterance: str, context_str: Optional[str] = "") -> Intent:
     """
     Parses the user utterance into a structured Intent.
     """
     try:
-        # We could inject context here if needed to resolve references (e.g. "send it to him")
-        # For now, simplistic execution.
-        
         intent_list_str = _build_intent_list()
-        
-        # We pass a sample intent for the prompt to know about requirements mechanism
-        # (Though the catalog list has them)
         
         result = chain.invoke({
             "intent_list": intent_list_str,
             "intent_example": "create_calendar_event",
-            "utterance": utterance
+            "utterance": utterance,
+            "context": context_str or "No context available."
         })
+
         
         # Post-validation (Double check logic)
         if result.name in INTENTS and result.name != "unknown":
@@ -84,5 +91,5 @@ def parse_intent(utterance: str, context_str: Optional[str] = None) -> Intent:
         
     except Exception as e:
         # Fallback
-        print(f"Intent Parsing Error: {e}")
+        logger.error(f"Intent Parsing Error: {e}")
         return Intent(name="unknown", confidence=0.0)

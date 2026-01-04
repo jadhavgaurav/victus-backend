@@ -1,0 +1,44 @@
+Skipping virtualenv creation, as specified in config file.
+============================= test session starts ==============================
+platform darwin -- Python 3.13.5, pytest-8.4.2, pluggy-1.6.0 -- /opt/anaconda3/bin/python3.13
+cachedir: .pytest_cache
+rootdir: /Users/apple/Desktop/AI/PROJECT-VICTUS/backend
+configfile: pyproject.toml
+plugins: asyncio-0.23.8, anyio-4.11.0, cov-4.1.0
+asyncio: mode=Mode.STRICT
+collecting ... collected 2 items
+
+tests/test_a2_memory.py::test_write_memory_logic ERROR                   [ 50%]
+tests/test_a2_memory.py::test_retrieve_memory_logic ERROR                [100%]
+
+==================================== ERRORS ====================================
+__________________ ERROR at setup of test_write_memory_logic ___________________
+file /Users/apple/Desktop/AI/PROJECT-VICTUS/backend/tests/test_a2_memory.py, line 12
+  def test_write_memory_logic(db: Session, db_session):
+E       fixture 'db' not found
+>       available fixtures: _session_event_loop, anyio_backend, anyio_backend_name, anyio_backend_options, async_client, cache, capfd, capfdbinary, caplog, capsys, capsysbinary, capteesys, cov, csrf_headers, db_session, doctest_namespace, engine, event_loop, event_loop_policy, free_tcp_port, free_tcp_port_factory, free_udp_port, free_udp_port_factory, mock_user, monkeypatch, no_cover, pytestconfig, record_property, record_testsuite_property, record_xml_attribute, recwarn, tests/test_a2_memory.py::<event_loop>, tests::<event_loop>, tmp_path, tmp_path_factory, tmpdir, tmpdir_factory, unused_tcp_port, unused_tcp_port_factory, unused_udp_port, unused_udp_port_factory
+>       use 'pytest --fixtures [testpath]' for help on them.
+
+/Users/apple/Desktop/AI/PROJECT-VICTUS/backend/tests/test_a2_memory.py:12
+_________________ ERROR at setup of test_retrieve_memory_logic _________________
+file /Users/apple/Desktop/AI/PROJECT-VICTUS/backend/tests/test_a2_memory.py, line 48
+  def test_retrieve_memory_logic(db: Session, db_session):
+E       fixture 'db' not found
+>       available fixtures: _session_event_loop, anyio_backend, anyio_backend_name, anyio_backend_options, async_client, cache, capfd, capfdbinary, caplog, capsys, capsysbinary, capteesys, cov, csrf_headers, db_session, doctest_namespace, engine, event_loop, event_loop_policy, free_tcp_port, free_tcp_port_factory, free_udp_port, free_udp_port_factory, mock_user, monkeypatch, no_cover, pytestconfig, record_property, record_testsuite_property, record_xml_attribute, recwarn, tests/test_a2_memory.py::<event_loop>, tests::<event_loop>, tmp_path, tmp_path_factory, tmpdir, tmpdir_factory, unused_tcp_port, unused_tcp_port_factory, unused_udp_port, unused_udp_port_factory
+>       use 'pytest --fixtures [testpath]' for help on them.
+
+/Users/apple/Desktop/AI/PROJECT-VICTUS/backend/tests/test_a2_memory.py:48
+=============================== warnings summary ===============================
+src/database.py:25
+  /Users/apple/Desktop/AI/PROJECT-VICTUS/backend/src/database.py:25: MovedIn20Warning: The ``declarative_base()`` function is now available as sqlalchemy.orm.declarative_base(). (deprecated since: 2.0) (Background on SQLAlchemy 2.0 at: https://sqlalche.me/e/b8d9)
+    Base = declarative_base()
+
+src/schemas/memory.py:18
+  /Users/apple/Desktop/AI/PROJECT-VICTUS/backend/src/schemas/memory.py:18: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class MemoryRead(MemoryBase):
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+ERROR tests/test_a2_memory.py::test_write_memory_logic
+ERROR tests/test_a2_memory.py::test_retrieve_memory_logic
+======================== 2 warnings, 2 errors in 0.07s =========================

@@ -11,7 +11,7 @@ from ..services.voice import VoiceService
 from ..agent.orchestrator import AgentOrchestrator
 
 logger = get_logger(__name__)
-router = APIRouter(prefix="/api/voice", tags=["Voice"])
+router = APIRouter(prefix="/voice", tags=["Voice"])
 
 # We can instantiate service globally or via dependency. 
 # Global is easier for caching connections.

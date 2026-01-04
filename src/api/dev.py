@@ -11,7 +11,7 @@ from ..utils.logging import get_logger
 
 logger = get_logger(__name__)
 
-router = APIRouter(prefix="/api/dev", tags=["Development"])
+router = APIRouter(prefix="/dev", tags=["Development"])
 
 @router.post("/bootstrap")
 async def bootstrap_dev_session(response: Response, request: Request, db: Session = Depends(get_db)):

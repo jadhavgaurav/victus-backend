@@ -6,6 +6,25 @@ from ..utils.logging import get_logger
 
 logger = get_logger(__name__)
 
+class DummyTrace:
+    def __init__(self):
+        self.id = None
+    
+    def span(self, **kwargs):
+        pass
+        
+    def update(self, **kwargs):
+        pass
+        
+    def event(self, **kwargs):
+        pass
+        
+    def score(self, **kwargs):
+        pass
+
+    def get_trace_url(self):
+        return None
+
 class LangfuseWrapper:
     _instance = None
     
@@ -39,7 +58,7 @@ class LangfuseWrapper:
     def trace(self, name: str, user_id: str = None, session_id: str = None, **kwargs):
         """Start a new Langfuse trace."""
         if not self.enabled or not self.client:
-            return None
+            return DummyTrace()
         
         try:
             return self.client.trace(
@@ -50,9 +69,9 @@ class LangfuseWrapper:
             )
         except Exception as e:
             logger.error(f"Langfuse trace error: {e}")
-            return None
+            return DummyTrace()
 
-    def observe(self, trace_obj, name: str, input: Any, output: Any = None, metadata: Dict = None, level: str = None):
+    def observe(self, trace_obj, name: str, input: Any = None, output: Any = None, metadata: Dict = None, level: str = None):
         """Add an observation (span/generation) to a trace."""
         if not trace_obj:
             return

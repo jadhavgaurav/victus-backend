@@ -23,7 +23,7 @@ from .schemas import ChatRequest, HistoryRequest
 from ..agent.memory import ConversationContextManager
 
 logger = get_logger(__name__)
-router = APIRouter(prefix="/api", tags=["Chat"])
+router = APIRouter(prefix="", tags=["Chat"])
 
 
 @router.post("/history")

@@ -48,20 +48,56 @@ async def post_session_message(
             detail="Session not found"
         )
 
+    # 1.5 Idempotency Check (A3.2)
+    idempotency_key = request.headers.get("Idempotency-Key")
+    if not idempotency_key:
+        # Generate stable key based on session + content
+        import hashlib
+        idempotency_key = hashlib.sha256(f"{session_id}:{body.content}".encode()).hexdigest()
+
+    # Check if User Message already exists
+    from ...models.tool_execution import AgentMessage
+    existing_msg = db.query(AgentMessage).filter(
+        AgentMessage.role == "user",
+        AgentMessage.idempotency_key == idempotency_key,
+        AgentMessage.session_id == session_id
+    ).first()
+
+    if existing_msg:
+        # Check for correlated Assistant Message
+        # We assume trace_id links them.
+        if existing_msg.trace_id:
+             assistant_msg = db.query(AgentMessage).filter(
+                 AgentMessage.role == "assistant",
+                 AgentMessage.trace_id == existing_msg.trace_id
+             ).first()
+             
+             if assistant_msg:
+                 return MessageResponse(
+                     assistant_text=assistant_msg.content,
+                     session_id=session_id,
+                     pending_confirmation=None, # Rehydrating this might require metadata storage?
+                     request_id=assistant_msg.trace_id
+                 )
+        # If no assistant msg, it might be processing or failed.
+        # We could return 409 or retry.
+        # For now, we proceed to retry (exactly-once logic in tools handles side effects).
+        logger.warning(f"Idempotency hit {idempotency_key} but no response found. Retrying.")
+
     # 2. Invoke Orchestrator
     orchestrator = AgentOrchestrator()
     try:
-        # Note: handle_user_utterance is synchronous in current design
+        # handle_user_utterance now accepts idempotency_key
         result = orchestrator.handle_user_utterance(
             db=db,
             user_id=current_user.id,
             session_id=session_id,
             utterance=body.content,
-            modality="text"  # Explicitly text
+            modality="text",  # Explicitly text
+            idempotency_key=idempotency_key
         )
 
         # 3. Construct Response
-        # Result is expected to be an AgentResponse object or similar
         return MessageResponse(
             assistant_text=result.assistant_text,
             session_id=session_id,

@@ -22,7 +22,7 @@ from ..models.user import User # Ensure User is imported for type hint if needed
 from ..security.audit import log_security_event, SecurityEventType
 
 logger = get_logger(__name__)
-router = APIRouter(prefix="/api", tags=["Documents"])
+router = APIRouter(prefix="", tags=["Documents"])
 
 
 @router.post("/upload")

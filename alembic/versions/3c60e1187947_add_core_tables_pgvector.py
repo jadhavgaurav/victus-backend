@@ -14,7 +14,7 @@ import src.db.types
 
 # revision identifiers, used by Alembic.
 revision: str = '3c60e1187947'
-down_revision: Union[str, None] = '4f95b897a5b8'
+down_revision: Union[str, None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 

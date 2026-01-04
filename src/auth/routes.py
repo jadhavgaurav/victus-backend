@@ -26,7 +26,7 @@ import secrets
 
 logger = get_logger(__name__)
 
-router = APIRouter(prefix="/api/auth", tags=["Authentication"])
+router = APIRouter(prefix="/auth", tags=["Authentication"])
 
 # Pydantic models
 class UserSignup(BaseModel):

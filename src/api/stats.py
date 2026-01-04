@@ -17,7 +17,7 @@ from ..utils.logging import get_logger
 from .schemas import UsageStatsResponse
 
 logger = get_logger(__name__)
-router = APIRouter(prefix="/api", tags=["Stats"])
+router = APIRouter(prefix="", tags=["Stats"])
 
 
 @router.get("/stats", response_model=UsageStatsResponse)

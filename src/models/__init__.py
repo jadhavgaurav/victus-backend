@@ -7,6 +7,8 @@ from .tool_call import ToolCall
 from .policy import PolicyDecisionModel, PendingConfirmationModel
 from .token import PasswordResetToken
 from .oauth import OAuthAccount
+from .memory import Memory, MemoryEvent
+from .tool_execution import ToolExecution, AgentMessage, Confirmation
 
 __all__ = [
     "User",
@@ -19,5 +21,9 @@ __all__ = [
     "PendingConfirmationModel",
     "PasswordResetToken",
     "OAuthAccount",
+    "MemoryEvent",
+    "AgentMessage",
+    "ToolExecution",
+    "Confirmation",
 ]
 
